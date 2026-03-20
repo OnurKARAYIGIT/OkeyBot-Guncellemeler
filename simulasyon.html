@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Metin2 Okey Simülasyonu</title>
+    <style>
+      /* Genel Ayarlar ve Oyun Teması */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #121212;
+        background-image: radial-gradient(circle, #2a2a2a 0%, #121212 100%);
+        color: #d4c8a9;
+        text-align: center;
+        margin: 0;
+        padding: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        user-select: none;
+      }
+
+      h1 {
+        text-shadow: 2px 2px 5px #000;
+        color: #e8d9b2;
+      }
+      .aciklama {
+        background: rgba(0, 0, 0, 0.6);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        max-width: 600px;
+        margin-bottom: 30px;
+      }
+
+      /* Oyun Masası Kutusu */
+      #oyun-penceresi {
+        background-color: #1e1e1e;
+        border: 2px solid #5c5346;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.9),
+          inset 0 0 20px rgba(0, 0, 0, 0.5);
+        width: 650px;
+      }
+
+      /* Üst Bilgi (Deste Durumu) */
+      .ust-bilgi {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #3a332a;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .deste-sayaci {
+        background: #2a241d;
+        padding: 8px 15px;
+        border-radius: 5px;
+        border: 1px solid #5c5346;
+      }
+
+      .puan-tabelasi {
+        background: #3a2a18;
+        padding: 8px 20px;
+        border-radius: 5px;
+        border: 1px solid #d4af37;
+        color: #d4af37;
+        font-size: 18px;
+        text-shadow: 1px 1px 2px #000;
+        font-weight: bold;
+      }
+
+      .oyun-sonu-alani {
+        width: 100%;
+        text-align: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 10px;
+        border: 1px solid #5c5346;
+      }
+
+      /* Kart Yuvaları */
+      #masa {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        min-height: 120px;
+        margin-bottom: 30px;
+      }
+
+      .kart-yuvasi {
+        background-color: #141414;
+        border: 2px solid #3a332a;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 65px;
+        height: 90px;
+        position: relative;
+        transition:
+          transform 0.1s,
+          border-color 0.2s;
+      }
+
+      .kart-yuvasi:hover {
+        transform: translateY(-5px);
+        border-color: #d4c8a9;
+        box-shadow: 0 5px 15px rgba(212, 200, 169, 0.2);
+      }
+
+      .bos-yuva::after {
+        content: "?";
+        font-size: 24px;
+        color: #333;
+        font-weight: bold;
+      }
+
+      /* Etiketler (Çöpe At vb.) */
+      .kart-yuvasi .etiket {
+        position: absolute;
+        bottom: -25px;
+        font-size: 12px;
+        color: #888;
+        width: 100px;
+        text-align: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .kart-yuvasi:hover .etiket {
+        opacity: 1;
+      }
+
+      .kart-yuvasi img {
+        display: block;
+        pointer-events: none;
+      }
+
+      /* Seçili Kart Efekti */
+      .kart-yuvasi.secili {
+        border-color: #4caf50;
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+        transform: translateY(-10px);
+      }
+
+      /* Aksiyon Butonları Alanı */
+      #aksiyonlar {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+      }
+
+      /* Butonlar */
+      button {
+        padding: 12px 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        background: linear-gradient(to bottom, #5c5346, #3a332a);
+        color: #e8d9b2;
+        border: 1px solid #111;
+        border-radius: 5px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+      }
+
+      button:hover {
+        background: linear-gradient(to bottom, #6d6353, #4a4237);
+      }
+      button:disabled {
+        background: #333;
+        color: #777;
+        border-color: #222;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .aksiyon-btn {
+        background: linear-gradient(to bottom, #2b5c3a, #1a3a24);
+        border-color: #111;
+      }
+      .aksiyon-btn:hover:not(:disabled) {
+        background: linear-gradient(to bottom, #3b7d4f, #245232);
+      }
+
+      .bitir-btn {
+        background: linear-gradient(to bottom, #7d3b3b, #522424);
+        border-color: #111;
+      }
+      .bitir-btn:hover:not(:disabled) {
+        background: linear-gradient(to bottom, #9d4b4b, #622a2a);
+      }
+      .yeni-oyun-btn {
+        background: linear-gradient(to bottom, #2b4b7d, #1a2d4a);
+        border-color: #111;
+      }
+      .yeni-oyun-btn:hover:not(:disabled) {
+        background: linear-gradient(to bottom, #3b659d, #243e6a);
+      }
+
+      /* Envanter Paneli */
+      #envanter {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border: 2px solid #5c5346;
+        border-radius: 8px;
+        text-align: left;
+        font-size: 18px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      }
+      #envanter h3 {
+        margin-top: 0;
+        color: #d4c8a9;
+        border-bottom: 1px solid #444;
+        padding-bottom: 10px;
+      }
+      .sandik-satir {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="envanter">
+      <h3>🎒 Envanter</h3>
+      <div
+        style="
+          margin-bottom: 15px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        "
+      >
+        <input
+          type="number"
+          id="set-limit"
+          value="10"
+          min="1"
+          style="
+            width: 50px;
+            background: #2a241d;
+            color: #e8d9b2;
+            border: 1px solid #5c5346;
+            padding: 5px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+          "
+        />
+        <button
+          onclick="simulasyonuSifirla()"
+          style="padding: 5px 10px; font-size: 12px; margin-left: 10px"
+        >
+          Ayarla & Sıfırla
+        </button>
+      </div>
+      <div class="sandik-satir">
+        🃏 Kalan Okey Seti:
+        <strong id="env-kalan-set" style="color: #fff">10</strong>
+      </div>
+      <hr style="border-color: #333; margin: 15px 0" />
+      <div class="sandik-satir">
+        🥉 Bronz Sandık:
+        <strong id="env-bronz" style="color: #cd7f32">0</strong>
+      </div>
+      <div class="sandik-satir">
+        🥈 Gümüş Sandık:
+        <strong id="env-gumus" style="color: #c0c0c0">0</strong>
+      </div>
+      <div class="sandik-satir">
+        🥇 Altın Sandık:
+        <strong id="env-altin" style="color: #ffd700">0</strong>
+      </div>
+    </div>
+
+    <h1>🎮 Metin2 Okey Simülasyon Ekranı</h1>
+    <div class="aciklama">
+      Botun ekranı doğru okuyabilmesi için tarayıcı yakınlaştırmasının
+      <strong>%100</strong> olduğundan emin olun.<br /><br />
+      <strong>Nasıl Oynanır?</strong> Kartın üzerine tıklayarak seçin.
+      <ul>
+        <li><b>1 Kart Seçerseniz:</b> Çöpe Atabilirsiniz.</li>
+        <li>
+          <b>3 Kart Seçerseniz:</b> Set (Seri veya Per) Oynayıp Skor
+          alabilirsiniz.
+        </li>
+      </ul>
+    </div>
+
+    <div id="oyun-penceresi">
+      <div class="ust-bilgi">
+        <span>🃏 OKEY ETKİNLİĞİ</span>
+        <span class="puan-tabelasi" id="puan-bilgi">Skor: 0</span>
+        <span class="deste-sayaci" id="deste-bilgi">Kalan Kart: 0</span>
+      </div>
+      <div id="masa"></div>
+      <div id="aksiyonlar">
+        <button id="btn-cope-at" onclick="secileniCopeAt()" disabled>
+          🗑️ Çöpe At (1 Kart)
+        </button>
+        <button
+          id="btn-set-oyna"
+          class="aksiyon-btn"
+          onclick="setOyna()"
+          disabled
+        >
+          ⭐ Set Oyna (3 Kart)
+        </button>
+        <button
+          id="btn-oyunu-bitir"
+          class="bitir-btn"
+          onclick="oyunuBitir()"
+          style="display: none"
+        >
+          🚩 Oyunu Bitir
+        </button>
+        <button id="btn-yeni-oyun" class="yeni-oyun-btn" onclick="yeniOyun()">
+          🔄 Yeni Oyun Başlat
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const renkler = ["k", "m", "s"];
+      let deste = [];
+      let eldekiKartlar = [];
+      let seciliKartlar = [false, false, false, false, false];
+      let toplamPuan = 0;
+      let oyunAktif = false;
+
+      let kalanOkeySeti = 10;
+      let kazanilanSandiklar = { bronz: 0, gumus: 0, altin: 0 };
+
+      function envanteriGuncelle() {
+        document.getElementById("env-kalan-set").innerText = kalanOkeySeti;
+        document.getElementById("env-bronz").innerText =
+          kazanilanSandiklar.bronz;
+        document.getElementById("env-gumus").innerText =
+          kazanilanSandiklar.gumus;
+        document.getElementById("env-altin").innerText =
+          kazanilanSandiklar.altin;
+      }
+
+      function simulasyonuSifirla() {
+        let yeniLimit = parseInt(document.getElementById("set-limit").value);
+        if (isNaN(yeniLimit) || yeniLimit < 1) yeniLimit = 1;
+        kalanOkeySeti = yeniLimit;
+        kazanilanSandiklar = { bronz: 0, gumus: 0, altin: 0 };
+        toplamPuan = 0;
+        oyunAktif = false;
+        deste = [];
+        eldekiKartlar = [];
+        envanteriGuncelle();
+        render();
+      }
+
+      function yeniOyun() {
+        if (kalanOkeySeti <= 0) {
+          alert(
+            "Tüm Okey Setleri Tükendi! Sonuçlara envanterden bakabilirsiniz.",
+          );
+          return;
+        }
+        kalanOkeySeti--;
+        envanteriGuncelle();
+
+        toplamPuan = 0;
+        oyunAktif = true;
+
+        // 1. Gerçek 24'lük desteyi oluştur
+        deste = [];
+        for (let r of renkler) {
+          for (let i = 1; i <= 8; i++) {
+            deste.push({ renk: r, sayi: i });
+          }
+        }
+
+        // 2. Desteyi Karıştır (Fisher-Yates Algoritması)
+        for (let i = deste.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deste[i], deste[j]] = [deste[j], deste[i]];
+        }
+
+        // 3. İlk 5 kartı ele çek
+        eldekiKartlar = [];
+        seciliKartlar = [false, false, false, false, false];
+        for (let i = 0; i < 5; i++) {
+          eldekiKartlar.push(deste.pop());
+        }
+
+        render();
+      }
+
+      function setiKontrolEt(secilenler) {
+        if (secilenler.length !== 3 || secilenler.includes(null)) return 0;
+        let s = [...secilenler].sort((a, b) => a.sayi - b.sayi);
+        let isPer =
+          s[0].sayi === s[1].sayi &&
+          s[1].sayi === s[2].sayi &&
+          s[0].renk !== s[1].renk &&
+          s[1].renk !== s[2].renk &&
+          s[0].renk !== s[2].renk;
+        let isSeri = s[1].sayi === s[0].sayi + 1 && s[2].sayi === s[1].sayi + 1;
+        let isAyniRenk = s[0].renk === s[1].renk && s[1].renk === s[2].renk;
+
+        if (isPer) return s[0].sayi * 10;
+        if (isSeri) return isAyniRenk ? s[0].sayi * 10 + 40 : s[0].sayi * 10;
+        return 0;
+      }
+
+      function oyunuBitir() {
+        oyunAktif = false;
+        let odul = "Bronz Okey Sandığı";
+        let renk = "#cd7f32";
+        if (toplamPuan >= 400) {
+          odul = "Altın Okey Sandığı";
+          renk = "#ffd700";
+          kazanilanSandiklar.altin++;
+        } else if (toplamPuan >= 250) {
+          odul = "Gümüş Okey Sandığı";
+          renk = "#c0c0c0";
+          kazanilanSandiklar.gumus++;
+        } else {
+          kazanilanSandiklar.bronz++;
+        }
+        envanteriGuncelle();
+
+        const masa = document.getElementById("masa");
+        masa.innerHTML = `
+            <div class="oyun-sonu-alani">
+                <h2 style="color:${renk}; margin: 0 0 10px 0;">🎉 OYUN BİTTİ! 🎉</h2>
+                <p style="font-size: 20px; margin: 10px 0;">Toplam Skorunuz: <strong style="font-size:28px;">${toplamPuan}</strong></p>
+                <div style="margin-top:20px; padding:15px; border: 2px dashed ${renk}; border-radius: 10px; display:inline-block; background: rgba(0,0,0,0.6);">
+                    <span style="font-size: 18px; color: #ccc;">🎁 KAZANILAN ÖDÜL:</span><br>
+                    <b style="font-size: 24px; color:${renk}">${odul}</b>
+                </div>
+            </div>
+        `;
+        render();
+      }
+
+      function render() {
+        if (!oyunAktif) {
+          document.getElementById("btn-cope-at").style.display = "none";
+          document.getElementById("btn-set-oyna").style.display = "none";
+          document.getElementById("btn-oyunu-bitir").style.display = "none";
+          document.getElementById("btn-yeni-oyun").style.display =
+            "inline-block";
+          return;
+        } else {
+          document.getElementById("btn-cope-at").style.display = "inline-block";
+          document.getElementById("btn-set-oyna").style.display =
+            "inline-block";
+          document.getElementById("btn-yeni-oyun").style.display = "none";
+        }
+
+        const masa = document.getElementById("masa");
+        masa.innerHTML = "";
+        document.getElementById("deste-bilgi").innerText =
+          `Kalan Kart: ${deste.length}`;
+        document.getElementById("puan-bilgi").innerText = `Skor: ${toplamPuan}`;
+
+        // Deste sıfırlandığında Oyunu Bitir Butonu Aktifleşir
+        if (deste.length === 0) {
+          document.getElementById("btn-oyunu-bitir").style.display =
+            "inline-block";
+        } else {
+          document.getElementById("btn-oyunu-bitir").style.display = "none";
+        }
+
+        // Buton durumlarını güncelle
+        const secilenSayisi = seciliKartlar.filter((s) => s).length;
+        document.getElementById("btn-cope-at").disabled = secilenSayisi !== 1;
+
+        const setBtn = document.getElementById("btn-set-oyna");
+        if (secilenSayisi === 3) {
+          const secilenlerObj = seciliKartlar
+            .map((v, i) => (v ? eldekiKartlar[i] : null))
+            .filter((k) => k !== null);
+          const kazanilacakPuan = setiKontrolEt(secilenlerObj);
+
+          if (kazanilacakPuan > 0) {
+            setBtn.disabled = false;
+            setBtn.innerText = `⭐ Set Oyna`;
+          } else {
+            setBtn.disabled = true;
+            setBtn.innerText = `❌ Geçersiz Set`;
+          }
+        } else {
+          setBtn.disabled = true;
+          setBtn.innerText = `⭐ Set Oyna (3 Kart)`;
+        }
+
+        for (let i = 0; i < 5; i++) {
+          const yuva = document.createElement("div");
+          yuva.className = eldekiKartlar[i]
+            ? "kart-yuvasi"
+            : "kart-yuvasi bos-yuva";
+
+          if (seciliKartlar[i]) {
+            yuva.classList.add("secili");
+          }
+
+          // Kart seçme mekanizması
+          yuva.onclick = () => kartSec(i);
+
+          if (eldekiKartlar[i]) {
+            // Resmi oluştur
+            const img = document.createElement("img");
+            img.src = `sablonlar/${eldekiKartlar[i].renk}${eldekiKartlar[i].sayi}.png`;
+
+            // Hover animasyon etiketi
+            const etiket = document.createElement("div");
+            etiket.className = "etiket";
+            etiket.innerText = seciliKartlar[i]
+              ? "Seçimi Kaldır"
+              : "Tıkla & Seç";
+
+            yuva.appendChild(img);
+            yuva.appendChild(etiket);
+          }
+          masa.appendChild(yuva);
+        }
+      }
+
+      function kartSec(index) {
+        if (eldekiKartlar[index]) {
+          seciliKartlar[index] = !seciliKartlar[index];
+          render();
+        }
+      }
+
+      function secileniCopeAt() {
+        const secilenler = seciliKartlar
+          .map((v, i) => (v ? i : -1))
+          .filter((i) => i !== -1);
+        if (secilenler.length === 1) {
+          const index = secilenler[0];
+          if (deste.length > 0) eldekiKartlar[index] = deste.pop();
+          else eldekiKartlar[index] = null;
+          seciliKartlar[index] = false;
+          render();
+        }
+      }
+
+      function setOyna() {
+        const secilenIndexler = seciliKartlar
+          .map((v, i) => (v ? i : -1))
+          .filter((i) => i !== -1);
+        if (secilenIndexler.length === 3) {
+          const secilenlerObj = secilenIndexler.map((i) => eldekiKartlar[i]);
+          const puan = setiKontrolEt(secilenlerObj);
+
+          if (puan > 0) {
+            toplamPuan += puan;
+
+            // Seçilen 3 kartı da yenile
+            secilenIndexler.forEach((index) => {
+              if (deste.length > 0) eldekiKartlar[index] = deste.pop();
+              else eldekiKartlar[index] = null;
+              seciliKartlar[index] = false;
+            });
+
+            render();
+          }
+        }
+      }
+
+      // Başlangıçta boş masayı çiz
+      render();
+    </script>
+  </body>
+</html>
